@@ -18,10 +18,18 @@ app.add_middleware(
 )
 
 # 3. Set model path (your folder)
-MODEL_PATH = r"C:\Users\REGGEL\OneDrive\Desktop\mahine_learning"
-print("✅ Using model path:", MODEL_PATH)
+# MODEL_PATH = r"C:\Users\REGGEL\OneDrive\Desktop\mahine_learning"
+# print("✅ Using model path:", MODEL_PATH)
 
-# 4. Load model & encoders
+# # 4. Load model & encoders
+# model = joblib.load(os.path.join(MODEL_PATH, "new_disease_case_predictor.pkl"))
+# month_encoder = joblib.load(os.path.join(MODEL_PATH, "new_month_encoder.pkl"))
+# disease_encoder = joblib.load(os.path.join(MODEL_PATH, "new_disease_encoder.pkl"))
+# season_encoder = joblib.load(os.path.join(MODEL_PATH, "season_encoder.pkl"))
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
+
 model = joblib.load(os.path.join(MODEL_PATH, "new_disease_case_predictor.pkl"))
 month_encoder = joblib.load(os.path.join(MODEL_PATH, "new_month_encoder.pkl"))
 disease_encoder = joblib.load(os.path.join(MODEL_PATH, "new_disease_encoder.pkl"))
