@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import joblib
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from mangum import Mangum
 import numpy as np
 
 
@@ -122,3 +123,5 @@ def predict(disease_name: str, case_count: float, month: str, year: int):
 
     except Exception as e:
         return {"error": str(e)}
+
+handler = Mangum(app)
