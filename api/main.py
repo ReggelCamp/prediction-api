@@ -200,7 +200,7 @@ def predict_multiple(req: PredictRequest):
             ]])
 
             predicted_cases = float(model.predict(input_row)[0])
-            is_rise = 1 if predicted_cases > case_count * 1.2 else 0
+            is_rise = 1 if predicted_cases > case_count * 1.25 else 0
 
             results.append({
                 "disease_name": disease_name,
