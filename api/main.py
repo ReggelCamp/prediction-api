@@ -143,10 +143,10 @@ app = FastAPI()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
 
-model            = joblib.load(os.path.join(MODEL_PATH, "new_disease_case_predictor.pkl"))
-month_encoder    = joblib.load(os.path.join(MODEL_PATH, "new_month_encoder.pkl"))
-disease_encoder  = joblib.load(os.path.join(MODEL_PATH, "new_disease_encoder.pkl"))
-season_encoder   = joblib.load(os.path.join(MODEL_PATH, "season_encoder.pkl"))
+model            = joblib.load(os.path.join(MODEL_PATH, "update_disease_case_predictor.pkl"))
+month_encoder    = joblib.load(os.path.join(MODEL_PATH, "update_month_encoder.pkl"))
+disease_encoder  = joblib.load(os.path.join(MODEL_PATH, "update_disease_encoder.pkl"))
+season_encoder   = joblib.load(os.path.join(MODEL_PATH, "update_encoder.pkl"))
 
 # ---------- SEASON HELPER ----------
 def get_season(month: str) -> str:
