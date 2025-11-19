@@ -141,13 +141,12 @@ app = FastAPI()
 
 # ---------- LOAD MODEL + ENCODERS ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "mahine_learning")  # Updated path based on your directory name
+MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
 
-# Loading the updated versions of the files
-model            = joblib.load(os.path.join(MODEL_PATH, "updated_disease_case_predictor.pkl"))
-month_encoder    = joblib.load(os.path.join(MODEL_PATH, "updated_month_encoder.pkl"))
-disease_encoder  = joblib.load(os.path.join(MODEL_PATH, "updated_disease_encoder.pkl"))
-season_encoder   = joblib.load(os.path.join(MODEL_PATH, "updated_season_encoder.pkl"))  # Fixed filename
+model            = joblib.load(os.path.join(MODEL_PATH, "update_disease_case_predictor.pkl"))
+month_encoder    = joblib.load(os.path.join(MODEL_PATH, "update_month_encoder.pkl"))
+disease_encoder  = joblib.load(os.path.join(MODEL_PATH, "update_disease_encoder.pkl"))
+season_encoder   = joblib.load(os.path.join(MODEL_PATH, "update_encoder.pkl"))
 
 # ---------- SEASON HELPER ----------
 def get_season(month: str) -> str:
