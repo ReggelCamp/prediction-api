@@ -249,9 +249,19 @@ MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
 #     firebase_admin.initialize_app(cred)
 
 if not firebase_admin._apps:
-    firebase_creds = json.loads(os.environ["FIREBASE_CREDENTIALS"])
-    cred = credentials.Certificate(firebase_creds)
-    initialize_app(cred)
+    # Get the Firebase credentials JSON string
+    firebase_creds_str = os.environ.get('FIREBASE_CREDENTIALS', '{}')
+
+# Replace escaped newlines with actual newlines
+firebase_creds_str = firebase_creds_str.replace('\\n', '\n')
+
+# Parse the JSON
+firebase_creds = json.loads(firebase_creds_str)
+
+# Now use it with Firebase
+cred = credentials.Certificate(firebase_creds)
+
+firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
