@@ -229,31 +229,31 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 cred_path = os.path.join(BASE_DIR, "firebase_key.json")
 MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
 
-# ==========================================================
-# 1️⃣ Initialize Firebase
-# ==========================================================
+
+# Initialize Firebase
+
 if not firebase_admin._apps:
     cred = credentials.Certificate(cred_path)
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
-# ==========================================================
-# 2️⃣ Load Model + Encoders
-# ==========================================================
+
+#  Load Model + Encoders
+
 model = joblib.load(os.path.join(MODEL_PATH, "updated_disease_case_predictor.pkl"))
 month_encoder = joblib.load(os.path.join(MODEL_PATH, "updated_month_encoder.pkl"))
 disease_encoder = joblib.load(os.path.join(MODEL_PATH, "updated_disease_encoder.pkl"))
 season_encoder = joblib.load(os.path.join(MODEL_PATH, "updated_season_encoder.pkl"))
 
-# ==========================================================
-# 3️⃣ FastAPI App
-# ==========================================================
+
+#  FastAPI App
+
 app = FastAPI()
 
-# ==========================================================
-# 4️⃣ PREDICTION REQUEST BODY
-# ==========================================================
+
+#  PREDICTION REQUEST BODY
+
 class MultiPredictionRequest(BaseModel):
     diseases: List[str]
     disease_case_counts: Dict[str, float]
@@ -261,9 +261,9 @@ class MultiPredictionRequest(BaseModel):
     year: int
     municipality: str
 
-# ==========================================================
-# 5️⃣ Helper: Compute Season
-# ==========================================================
+
+#  Helper: Compute Season
+
 SEASON_MAP = {
     'December': 'Wet', 'January': 'Wet', 'February': 'Dry', 'March': 'Dry',
     'April': 'Dry', 'May': 'Dry', 'June': 'Wet', 'July': 'Wet',
@@ -273,9 +273,9 @@ SEASON_MAP = {
 def get_season(month: str) -> str:
     return SEASON_MAP.get(month, "Wet")
 
-# ==========================================================
-# 6️⃣ GET REAL HISTORICAL FEATURES FROM FIRESTORE
-# ==========================================================
+
+#  GET REAL HISTORICAL FEATURES FROM FIRESTORE
+
 def build_features_from_frontend(diseases, disease_case_counts, month, year):
     features = {}
     month_encoded = safe_transform(month_encoder, [month])[0]
@@ -335,9 +335,8 @@ def safe_transform(encoder, values):
             transformed.append(-1)
     return np.array(transformed)
 
-# ==========================================================
-# 7️⃣ Feature Engineering
-# ==========================================================
+# Feature Engineering
+
 def compute_features(records, target_month, target_year):
     df = pd.DataFrame(records)
 
@@ -435,9 +434,9 @@ def compute_features(records, target_month, target_year):
 
     return prediction_inputs if prediction_inputs else None
 
-# ==========================================================
-# 8️⃣ PREDICT USING REAL FEATURES - RETURN 1/0
-# ==========================================================
+
+#  PREDICT USING REAL FEATURES - RETURN 1/0
+
 @app.post("/predict_multiple")
 def predict_multiple(request: MultiPredictionRequest):
     try:
@@ -453,16 +452,15 @@ def predict_multiple(request: MultiPredictionRequest):
         if not inputs:
             return {"error": "No valid diseases to predict. Check the csv for pottential wrong spellings", "results": []}
 
-        # 2️⃣ Predict using the model
         results = []
         for disease, feature_row in inputs.items():
             predicted_cases = model.predict([feature_row])[0]
             predicted_cases = max(0, round(predicted_cases))
 
-            # 3️⃣ Get current month's average from Firestore for comparison
+            #  Get current month's average from Firestore for comparison
             current_cases = fetch_historical_average(municipality, disease)
 
-            # 4️⃣ Determine rise (25% increase threshold)
+            #  Determine rise (25% increase threshold)
             if current_cases > 0:
                 increase_percentage = ((predicted_cases - current_cases) / current_cases) * 100
                 prediction = 1 if increase_percentage >= 25 else 0
