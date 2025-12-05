@@ -225,11 +225,8 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-import json
 
 app = FastAPI()
-load_dotenv()
 
 # Add CORS middleware BEFORE any routes
 app.add_middleware(
@@ -250,12 +247,6 @@ MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
 if not firebase_admin._apps:
     cred = credentials.Certificate(cred_path)
     firebase_admin.initialize_app(cred)
-
-# firebase_creds = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
-
-# # Initialize Firebase
-# cred = credentials.Certificate(firebase_creds)
-# firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
