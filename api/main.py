@@ -129,155 +129,66 @@
 
 
 #copy
-import os
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import List, Dict
-import numpy as np
-import joblib
-import traceback
-
-app = FastAPI()
-
-# ---------- LOAD MODEL + ENCODERS ----------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
-
-model            = joblib.load(os.path.join(MODEL_PATH, "updated_disease_case_predictor.pkl"))
-month_encoder    = joblib.load(os.path.join(MODEL_PATH, "updated_month_encoder.pkl"))
-disease_encoder  = joblib.load(os.path.join(MODEL_PATH, "updated_disease_encoder.pkl"))
-season_encoder   = joblib.load(os.path.join(MODEL_PATH, "updated_season_encoder.pkl")) 
-# ---------- SEASON HELPER ----------
-def get_season(month: str) -> str:
-    month = month.lower()
-    if month in ["december", "january", "february"]:
-        return "Wet"
-    if month in ["march", "april", "may"]:
-        return "Dry"
-    if month in ["june", "july", "august", "september", "october", "november"]:
-        return "Wet"
-    return "unknown"
-
-# ---------- REQUEST SCHEMA ----------
-class PredictRequest(BaseModel):
-    diseases: List[str]
-    disease_case_counts: Dict[str, float]   # 👈 per-disease totals from UI
-    month: str
-    year: int
-
-# ---------- ENDPOINT ----------
-@app.post("/predict_multiple")
-def predict_multiple(req: PredictRequest):
-    try:
-        month_encoded = month_encoder.transform([req.month])[0]
-        season      = get_season(req.month)
-        season_encoded = season_encoder.transform([season])[0]
-
-        results = []
-
-        for disease_name in req.diseases:
-            case_count = req.disease_case_counts.get(disease_name, 0)
-
-            try:
-                disease_encoded = disease_encoder.transform([disease_name])[0]
-            except ValueError:
-                return {"error": f"Unknown disease: {disease_name}"}
-
-            # synthetic features (same logic as before)
-            prev_month_cases = case_count * 0.9
-            rolling3 = (case_count + prev_month_cases + case_count * 1.1) / 3
-            time_index = 1
-
-            input_row = np.array([[
-                disease_encoded,
-                month_encoded,
-                req.year,
-                season_encoded,
-                prev_month_cases,
-                rolling3,
-                time_index
-            ]])
-
-            predicted_cases = float(model.predict(input_row)[0])
-            is_rise = 1 if predicted_cases > case_count * 1.25 else 0
-
-            results.append({
-                "disease_name": disease_name,
-                "predicted_cases": round(predicted_cases, 2),
-                "prediction": is_rise
-            })
-
-        return {"results": results, "season": season}
-
-    except Exception as e:
-        print("❌ Internal error:", traceback.format_exc())
-        return {"error": f"Internal Server Error: {str(e)}"}
-
-#copy 2
 # import os
 # from fastapi import FastAPI
 # from pydantic import BaseModel
-# from typing import List, Dict, Union
+# from typing import List, Dict
 # import numpy as np
 # import joblib
 # import traceback
 
 # app = FastAPI()
 
-# # === Load encoders and model ===
+# # ---------- LOAD MODEL + ENCODERS ----------
 # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
 
-# model = joblib.load(os.path.join(MODEL_PATH, "new_disease_case_predictor.pkl"))
-# month_encoder = joblib.load(os.path.join(MODEL_PATH, "new_month_encoder.pkl"))
-# disease_encoder = joblib.load(os.path.join(MODEL_PATH, "new_disease_encoder.pkl"))
-# season_encoder = joblib.load(os.path.join(MODEL_PATH, "season_encoder.pkl"))
-
-# # === Helper function for season ===
+# model            = joblib.load(os.path.join(MODEL_PATH, "updated_disease_case_predictor.pkl"))
+# month_encoder    = joblib.load(os.path.join(MODEL_PATH, "updated_month_encoder.pkl"))
+# disease_encoder  = joblib.load(os.path.join(MODEL_PATH, "updated_disease_encoder.pkl"))
+# season_encoder   = joblib.load(os.path.join(MODEL_PATH, "updated_season_encoder.pkl")) 
+# # ---------- SEASON HELPER ----------
 # def get_season(month: str) -> str:
 #     month = month.lower()
 #     if month in ["december", "january", "february"]:
-#         return "Wet"     # Northeast monsoon / dry season
-#     elif month in ["march", "april", "may"]:
-#         return "Dry"      # Hot dry season
-#     elif month in ["june", "july", "august", "september", "october", "november"]:
-#         return "Wet"        # Rainy season
-#     else:
-#         return "unknown"
+#         return "Wet"
+#     if month in ["march", "april", "may"]:
+#         return "Dry"
+#     if month in ["june", "july", "august", "september", "october", "november"]:
+#         return "Wet"
+#     return "unknown"
 
-# # === Pydantic model for request ===
+# # ---------- REQUEST SCHEMA ----------
 # class PredictRequest(BaseModel):
-#     diseases: List[str]  # List of disease names
-#     disease_case_counts: Dict[str, Union[int, float]]  # Dictionary with disease names as keys and case counts as values (int or float)
+#     diseases: List[str]
+#     disease_case_counts: Dict[str, float]   # 👈 per-disease totals from UI
 #     month: str
-#     year: Union[int, float]  # Year can be int or float
+#     year: int
 
-# # === Predict multiple diseases ===
+# # ---------- ENDPOINT ----------
 # @app.post("/predict_multiple")
 # def predict_multiple(req: PredictRequest):
 #     try:
-#         # Encode month and season
 #         month_encoded = month_encoder.transform([req.month])[0]
-#         season = get_season(req.month)
+#         season      = get_season(req.month)
 #         season_encoded = season_encoder.transform([season])[0]
 
 #         results = []
 
 #         for disease_name in req.diseases:
-#             case_count = float(req.disease_case_counts.get(disease_name, 0.0))  # Ensure it's float, default to 0.0
+#             case_count = req.disease_case_counts.get(disease_name, 0)
 
 #             try:
 #                 disease_encoded = disease_encoder.transform([disease_name])[0]
-#             except Exception:
+#             except ValueError:
 #                 return {"error": f"Unknown disease: {disease_name}"}
 
-#             # Simulate previous month and rolling values per disease
+#             # synthetic features (same logic as before)
 #             prev_month_cases = case_count * 0.9
 #             rolling3 = (case_count + prev_month_cases + case_count * 1.1) / 3
+#             time_index = 1
 
-#             time_index = 1  # Placeholder since no real time series provided
-
-#             input_data = np.array([[
+#             input_row = np.array([[
 #                 disease_encoded,
 #                 month_encoded,
 #                 req.year,
@@ -287,12 +198,11 @@ def predict_multiple(req: PredictRequest):
 #                 time_index
 #             ]])
 
-#             predicted_cases = float(model.predict(input_data)[0])
-#             is_rise = 1 if predicted_cases > case_count * 1.2 else 0
+#             predicted_cases = float(model.predict(input_row)[0])
+#             is_rise = 1 if predicted_cases > case_count * 1.25 else 0
 
 #             results.append({
 #                 "disease_name": disease_name,
-#                 "current_cases": case_count,
 #                 "predicted_cases": round(predicted_cases, 2),
 #                 "prediction": is_rise
 #             })
@@ -302,3 +212,285 @@ def predict_multiple(req: PredictRequest):
 #     except Exception as e:
 #         print("❌ Internal error:", traceback.format_exc())
 #         return {"error": f"Internal Server Error: {str(e)}"}
+
+#copy 2
+import os
+from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import Dict, List
+import joblib
+import numpy as np
+from datetime import datetime
+import firebase_admin
+from firebase_admin import credentials, firestore
+import pandas as pd
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+cred_path = os.path.join(BASE_DIR, "firebase_key.json")
+MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
+
+# ==========================================================
+# 1️⃣ Initialize Firebase
+# ==========================================================
+if not firebase_admin._apps:
+    cred = credentials.Certificate(cred_path)
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
+
+# ==========================================================
+# 2️⃣ Load Model + Encoders
+# ==========================================================
+model = joblib.load(os.path.join(MODEL_PATH, "updated_disease_case_predictor.pkl"))
+month_encoder = joblib.load(os.path.join(MODEL_PATH, "updated_month_encoder.pkl"))
+disease_encoder = joblib.load(os.path.join(MODEL_PATH, "updated_disease_encoder.pkl"))
+season_encoder = joblib.load(os.path.join(MODEL_PATH, "updated_season_encoder.pkl"))
+
+# ==========================================================
+# 3️⃣ FastAPI App
+# ==========================================================
+app = FastAPI()
+
+# ==========================================================
+# 4️⃣ PREDICTION REQUEST BODY
+# ==========================================================
+class MultiPredictionRequest(BaseModel):
+    diseases: List[str]
+    disease_case_counts: Dict[str, float]
+    month: str
+    year: int
+    municipality: str
+
+# ==========================================================
+# 5️⃣ Helper: Compute Season
+# ==========================================================
+SEASON_MAP = {
+    'December': 'Wet', 'January': 'Wet', 'February': 'Dry', 'March': 'Dry',
+    'April': 'Dry', 'May': 'Dry', 'June': 'Wet', 'July': 'Wet',
+    'August': 'Wet', 'September': 'Wet', 'October': 'Wet', 'November': 'Wet'
+}
+
+def get_season(month: str) -> str:
+    return SEASON_MAP.get(month, "Wet")
+
+# ==========================================================
+# 6️⃣ GET REAL HISTORICAL FEATURES FROM FIRESTORE
+# ==========================================================
+def build_features_from_frontend(diseases, disease_case_counts, month, year):
+    features = {}
+    month_encoded = safe_transform(month_encoder, [month])[0]
+    season_encoded = safe_transform(season_encoder, [get_season(month)])[0]
+
+    if month_encoded == -1:
+        month_encoded = 0
+    if season_encoded == -1:
+        season_encoded = season_encoder.transform(["Wet"])[0] if "Wet" in season_encoder.classes_ else 0
+
+    for disease in diseases:
+        disease_encoded = safe_transform(disease_encoder, [disease])[0]
+        if disease_encoded == -1:
+            continue
+
+        # Get the current month's case count from frontend input
+        current_cases = disease_case_counts.get(disease, 0)
+
+        # Minimal feature input for the model
+        features[disease] = [
+            disease_encoded,      # Disease
+            month_encoded,        # Month
+            year,                 # Year
+            season_encoded,       # Season
+            current_cases,        # Use frontend current count as "prev cases"
+            current_cases,        # Use frontend current count as rolling3
+            0                     # TimeIndex (0 if unknown)
+        ]
+
+    return features
+
+def fetch_historical_average(municipality, disease):
+    try:
+        healthworkers = db.collection("healthradarDB").document("users").collection("healthworker").get()
+        counts = []
+        for hw_doc in healthworkers:
+            uploaded_cases = hw_doc.reference.collection("UploadedCases") \
+                .where("Municipality", "==", municipality.strip().title()) \
+                .where("DiseaseName", "==", disease.strip().title()) \
+                .get()
+            for case in uploaded_cases:
+                counts.append(case.to_dict()["CaseCount"])
+        return np.mean(counts) if counts else 0
+    except:
+        return 0
+
+
+
+def safe_transform(encoder, values):
+    """Transform values with LabelEncoder; assign -1 to unseen labels."""
+    known_classes = set(encoder.classes_)
+    transformed = []
+    for v in values:
+        if v in known_classes:
+            transformed.append(encoder.transform([v])[0])
+        else:
+            transformed.append(-1)
+    return np.array(transformed)
+
+# ==========================================================
+# 7️⃣ Feature Engineering
+# ==========================================================
+def compute_features(records, target_month, target_year):
+    df = pd.DataFrame(records)
+
+    if df.empty:
+        return None
+
+    # Standardize disease names
+    df["DiseaseName"] = (
+        df["DiseaseName"]
+        .str.strip()
+        .str.title()
+        .replace({
+            "Sore Eys": "Sore Eyes",
+            "Tubercolosis": "Tuberculosis",
+            "Hiv": "HIV"
+        })
+    )
+
+    # Use safe_transform for encoding
+    df["Month_Encoded"] = safe_transform(month_encoder, df["Month"])
+    df["Disease_Encoded"] = safe_transform(disease_encoder, df["DiseaseName"])
+    
+    # Season
+    df["Season"] = df["Month"].map(SEASON_MAP)
+    df["Season_Encoded"] = safe_transform(season_encoder, df["Season"])
+
+    # Sort data
+    df = df.sort_values(["DiseaseName", "Year", "Month_Encoded"]).reset_index(drop=True)
+
+    # Calculate PrevMonthCases
+    df["PrevMonthCases"] = (
+        df.groupby("DiseaseName")["CaseCount"]
+        .shift(1)
+        .fillna(df["CaseCount"].mean())
+    )
+
+    # Calculate Rolling3
+    df["Rolling3"] = (
+        df.groupby("DiseaseName")["CaseCount"]
+        .rolling(window=3, min_periods=1)
+        .mean()
+        .reset_index(level=0, drop=True)
+    )
+
+    # TimeIndex
+    df["TimeIndex"] = df.groupby("DiseaseName").cumcount()
+
+    # Build Input Features
+    target_month_encoded = safe_transform(month_encoder, [target_month])[0]
+    target_season_encoded = safe_transform(season_encoder, [get_season(target_month)])[0]
+    
+    if target_month_encoded == -1:
+        target_month_encoded = 0
+    
+    if target_season_encoded == -1:
+        target_season_encoded = season_encoder.transform(["Wet"])[0] if "Wet" in season_encoder.classes_ else 0
+
+    prediction_inputs = {}
+    unique_diseases = df["DiseaseName"].unique()
+    
+    for disease in unique_diseases:
+        subset = df[df["DiseaseName"] == disease]
+        
+        if subset.empty:
+            continue
+            
+        disease_encoded = safe_transform(disease_encoder, [disease])[0]
+        if disease_encoded == -1:
+            continue
+
+        # Handle missing columns
+        if "Rolling3" not in subset.columns or subset["Rolling3"].isna().any():
+            rolling3 = subset["CaseCount"].tail(3).mean()
+        else:
+            rolling3 = subset.iloc[-1]["Rolling3"]
+        
+        prev_cases = subset.iloc[-1]["PrevMonthCases"]
+        next_time_index = subset.iloc[-1]["TimeIndex"] + 1
+        
+        if pd.isna(rolling3):
+            rolling3 = subset["CaseCount"].mean()
+        
+        if pd.isna(prev_cases):
+            prev_cases = subset["CaseCount"].mean()
+
+        prediction_inputs[disease] = [
+            disease_encoded,
+            target_month_encoded,
+            target_year,
+            target_season_encoded,
+            prev_cases,
+            rolling3,
+            next_time_index
+        ]
+
+    return prediction_inputs if prediction_inputs else None
+
+# ==========================================================
+# 8️⃣ PREDICT USING REAL FEATURES - RETURN 1/0
+# ==========================================================
+@app.post("/predict_multiple")
+def predict_multiple(request: MultiPredictionRequest):
+    try:
+        diseases = request.diseases
+        disease_case_counts = request.disease_case_counts
+        month = request.month
+        year = request.year
+        municipality = request.municipality
+
+        # 1️⃣ Build features from frontend input
+        inputs = build_features_from_frontend(diseases, disease_case_counts, month, year)
+
+        if not inputs:
+            return {"error": "No valid diseases to predict. Check the csv for pottential wrong spellings", "results": []}
+
+        # 2️⃣ Predict using the model
+        results = []
+        for disease, feature_row in inputs.items():
+            predicted_cases = model.predict([feature_row])[0]
+            predicted_cases = max(0, round(predicted_cases))
+
+            # 3️⃣ Get current month's average from Firestore for comparison
+            current_cases = fetch_historical_average(municipality, disease)
+
+            # 4️⃣ Determine rise (25% increase threshold)
+            if current_cases > 0:
+                increase_percentage = ((predicted_cases - current_cases) / current_cases) * 100
+                prediction = 1 if increase_percentage >= 25 else 0
+            else:
+                prediction = 1 if predicted_cases > 0 else 0
+
+            probability = min(100, max(0, predicted_cases))
+
+            results.append({
+                "disease_name": disease,
+                "prediction": prediction,
+                "probability": probability,
+                "predicted_cases": predicted_cases,
+                "current_cases": current_cases
+            })
+
+        results.sort(key=lambda x: x["probability"], reverse=True)
+        rising_diseases = [r for r in results if r["prediction"] == 1]
+        top_disease = rising_diseases[0]["disease_name"] if rising_diseases else None
+
+        return {
+            "target_month": month,
+            "target_year": year,
+            "results": results,
+            "top_disease": top_disease,
+            "rising_count": len(rising_diseases)
+        }
+
+    except Exception as e:
+        print(f"Error in predict_multiple: {e}")
+        return {"error": f"Internal server error: {str(e)}", "results": []}
