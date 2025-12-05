@@ -244,9 +244,12 @@ app.add_middleware(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
 
+# Load .env only if it exists (for local development)
+if os.path.exists(".env"):
+    load_dotenv()
+
 # Initialize Firebase
 if not firebase_admin._apps:
-    # Get the JSON string from environment variable
     cred_json = os.getenv("FIREBASE_CREDENTIALS")
     
     if not cred_json:
@@ -254,6 +257,11 @@ if not firebase_admin._apps:
     
     # Parse the JSON string
     cred_dict = json.loads(cred_json)
+    
+    # Fix the newlines in the private key if needed
+    if isinstance(cred_dict.get("private_key"), str):
+        cred_dict["private_key"] = cred_dict["private_key"].replace('\\n', '\n')
+    
     cred = credentials.Certificate(cred_dict)
     firebase_app = initialize_app(cred)
 
