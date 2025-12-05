@@ -214,7 +214,7 @@
 #         return {"error": f"Internal Server Error: {str(e)}"}
 
 #copy 2
-import os
+import os,json
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Dict, List
@@ -222,7 +222,7 @@ import joblib
 import numpy as np
 from datetime import datetime
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, initialize_app
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -238,15 +238,20 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-cred_path = os.path.join(BASE_DIR, "firebase_key.json")
+#cred_path = os.path.join(BASE_DIR, "firebase_key.json")
 MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
 
 
 # Initialize Firebase
 
+# if not firebase_admin._apps:
+#     cred = credentials.Certificate(cred_path)
+#     firebase_admin.initialize_app(cred)
+
 if not firebase_admin._apps:
-    cred = credentials.Certificate(cred_path)
-    firebase_admin.initialize_app(cred)
+    firebase_creds = json.loads(os.environ["FIREBASE_CREDENTIALS"])
+    cred = credentials.Certificate(firebase_creds)
+    initialize_app(cred)
 
 db = firestore.client()
 
