@@ -225,6 +225,10 @@ import firebase_admin
 from firebase_admin import credentials, firestore, initialize_app
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv  # Add this import
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI()
 
@@ -238,33 +242,22 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-#cred_path = os.path.join(BASE_DIR, "firebase_key.json")
 MODEL_PATH = os.path.join(BASE_DIR, "PKL-files")
 
-
 # Initialize Firebase
-
-# if not firebase_admin._apps:
-#     cred = credentials.Certificate(cred_path)
-#     firebase_admin.initialize_app(cred)
-
 if not firebase_admin._apps:
-    # Get the Firebase credentials JSON string
-    firebase_creds_str = os.environ.get('FIREBASE_CREDENTIALS', '{}')
-
-# Replace escaped newlines with actual newlines
-firebase_creds_str = firebase_creds_str.replace('\\n', '\n')
-
-# Parse the JSON
-firebase_creds = json.loads(firebase_creds_str)
-
-# Now use it with Firebase
-cred = credentials.Certificate(firebase_creds)
-
-firebase_admin.initialize_app(cred)
+    # Get the JSON string from environment variable
+    cred_json = os.getenv("FIREBASE_CREDENTIALS")
+    
+    if not cred_json:
+        raise ValueError("FIREBASE_CREDENTIALS environment variable is not set")
+    
+    # Parse the JSON string
+    cred_dict = json.loads(cred_json)
+    cred = credentials.Certificate(cred_dict)
+    firebase_app = initialize_app(cred)
 
 db = firestore.client()
-
 
 #  Load Model + Encoders
 
